@@ -22,7 +22,7 @@ spec:
           image: ganeshmete11/container-cicd:latest
           imagePullPolicy: Always
           ports:
-          - containerPort: 5000
+          - containerPort: 8060
             name: container-cicd
 
 
@@ -35,8 +35,8 @@ metadata:
     app: container-cicd
 spec:
   ports:
-    - port: 5000
-      targetPort: 5000
+    - port: 8060
+      targetPort: 8060
   selector:
     app: container-cicd
     tier: container-cicd
