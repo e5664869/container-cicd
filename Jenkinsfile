@@ -84,7 +84,7 @@ pipeline {
         
         stage('Deploy to GKE') {
             steps{
-                sh "sed -i 's/container-cicd:latest/container-cicd:${env.BUILD_ID}/g' deployment.yml"
+                sh "sed -i 's/container-cicd:latest/container-cicd:1.0.0-${env.BUILD_ID}/g' deployment.yml"
                 step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: 'deployment.yml', credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
             }
         }
