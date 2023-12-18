@@ -1,5 +1,8 @@
 pipeline {
     agent { label 'Slave-Node'}
+    tools{
+        maven 'Maven'
+    }
 
     stages{
         stage("Cleanup Workspace"){
