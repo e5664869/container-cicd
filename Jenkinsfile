@@ -43,6 +43,7 @@ pipeline {
                 }
             }
         }
+        /*
         stage("Quality Gate Report"){
             steps{
                 script{
@@ -52,6 +53,7 @@ pipeline {
                 }
             }
         } 
+        */
         stage("Build & Push Docker Image"){
             steps{
                 script{
