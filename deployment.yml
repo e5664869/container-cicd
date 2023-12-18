@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: container-cicd
+  labels:
+    app: container-cicd
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: container-cicd
+      
+  template:
+    metadata:
+      labels:
+        app: container-cicd
+        tier: container-cicd
+    spec:
+      containers:
+        - name: container-cicd
+          image: ganeshmete11/container-cicd:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 5000
+            name: container-cicd
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: container-cicd
+  labels:
+    app: container-cicd
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    app: container-cicd
+    tier: container-cicd
+  type: LoadBalancer 

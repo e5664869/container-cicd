@@ -10,6 +10,10 @@ pipeline {
         DOCKER_PASS = "DockerId"
         IMAGE_NAME  = "ganeshmete11" + "/" + "${APP_NAME}"
         IMAGE_TAG   = "${RELEASE}-${BUILD_NUMBER}"
+        PROJECT_ID = 'terraform-on-gcp-403504'
+        CLUSTER_NAME = 'autopilot-cluster-1'
+        LOCATION = 'us-central1'
+        CREDENTIALS_ID = 'terraform-on-gcp'
     }
 
     stages{
@@ -85,7 +89,13 @@ pipeline {
                 }
             }
         }
-        
+        stage('Deploy to GKE') {
+            steps{
+                sh "sed -i 's/container-cicd:latest/container-cicd:${env.BUILD_ID}/g' deployment.yaml"
+                step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: 'deployment.yaml', credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
+            }
+        }
+
     }
 }
     
