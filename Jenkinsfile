@@ -8,7 +8,7 @@ pipeline {
         RELEASE = "1.0.0"
         DOCKER_USER = "ganeshmete11@gmail.com"
         DOCKER_PASS = "DockerId"
-        IMAGE_NAME  = "ganeshmete" + "/" + "${APP_NAME}"
+        IMAGE_NAME  = "ganeshmete11" + "/" + "${APP_NAME}"
         IMAGE_TAG   = "${RELEASE}-${BUILD_NUMBER}"
     }
 
@@ -61,7 +61,7 @@ pipeline {
                         docker_image = docker.build "${IMAGE_NAME}"
     
                     }
-                    docker.withRegistry('',DOCKER_PASS){
+                    withDockerRegistry(credentialsId: 'DockerId') {
                         docker_image.push("${IMAGE_TAG}")
                         docker_image.push('latest')
                     }
