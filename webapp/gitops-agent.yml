@@ -1,0 +1,438 @@
+
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: gitops-agent
+    app.kubernetes.io/name: gitops-agent
+    app.kubernetes.io/part-of: gitops-agent
+  name: harness-gitops-agent
+  namespace: default
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: harness-gitops-agent-upgrader
+  namespace: default
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/name: gitops-agent
+    app.kubernetes.io/part-of: argocd
+  name: harness-gitops-agent
+  namespace: default
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - configmaps
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - external-secrets.io
+    resources:
+      - externalsecrets
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+      - create
+  - apiGroups:
+      - generators.external-secrets.io
+    resources:
+      - gcraccesstokens
+      - ecrauthorizationtokens
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+      - create
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - applications
+      - appprojects
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - delete
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - pods
+    verbs:
+      - create
+      - list
+      - watch
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - update
+      - patch
+---
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: harness-gitops-agent-upgrader
+rules:
+  - apiGroups: ["batch", "apps", "extensions"]
+    resources: ["cronjobs"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["extensions", "apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/name: gitops-agent
+    app.kubernetes.io/part-of: argocd
+  name: harness-gitops-agent
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - get
+      - patch
+      - delete
+      - watch
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/log
+    verbs:
+      - get
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - applications
+      - appprojects
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/name: gitops-agent
+    app.kubernetes.io/part-of: argocd
+  name: harness-gitops-agent
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: harness-gitops-agent
+subjects:
+  - kind: ServiceAccount
+    name: harness-gitops-agent
+    namespace: default
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: harness-gitops-agent-upgrader
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: harness-gitops-agent-upgrader
+    namespace: default
+roleRef:
+  kind: Role
+  name: harness-gitops-agent-upgrader
+  apiGroup: ""
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: harness-gitops-agent
+
+roleRef:
+  kind: ClusterRole
+  name: harness-gitops-agent
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: harness-gitops-agent
+    namespace: default
+
+---
+
+apiVersion: v1
+data:
+  GITOPS_ACCOUNT_IDENTIFIER: EDwM_joHSFK4oz33rVMOeg
+  GITOPS_AGENT_IDENTIFIER: harnessgitops
+  GITOPS_ORG_IDENTIFIER: default
+  GITOPS_PROJECT_IDENTIFIER: default_project
+  GITOPS_SERVICE_HTTP_TLS_ENABLED: "false"
+  GITOPS_SERVICE_HTTP_CERT_FILES: /tmp/ca.bundle
+  AGENT_HTTP_TARGET: https://app.harness.io/gitops
+  AGENT_GRPC_TARGET: app.harness.io:443
+  AGENT_GRPC_AUTHORITY: gitops-grpc-app.harness.io
+  GITOPS_SERVICE_PROTOCOL: HTTP1
+  GITOPS_SERVICE_GRPC_INSECURE: "false"
+  GITOPS_AGENT_ENABLE_RECONCILE: "true"
+  GITOPS_AGENT_RECONCILE_INTERVAL: "100"
+  GITOPS_AGENT_DISCOVER_APPLICATION_PODS_DURATION_IN_SECS: "120"
+  LOG_LEVEL: debug
+  GITOPS_AGENT_FETCH_TYPE: "POLLER"
+  REDIS_COMPRESSION: none
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/name: gitops-agent-cm
+    app.kubernetes.io/part-of: argocd
+  name: harness-gitops-agent
+  namespace: default
+---
+
+apiVersion: v1
+data:
+  config.yaml: |
+    mode: GitopsAgent
+    dryRun: false
+    workloadName: harness-gitops-agent
+    namespace: default
+    containerName: gitops-agent
+    gitopsAgentConfig:
+      gitopsServerHost: https://app.harness.io/prod1/gitops
+      caData: /tmp/ca.bundle
+kind: ConfigMap
+metadata:
+  name: harness-gitops-agent-upgrader
+  namespace: default
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/name: gitops-agent-secret
+    app.kubernetes.io/part-of: argocd
+  name: harness-gitops-agent
+  namespace: default
+type: Opaque
+stringData:
+  GITOPS_AGENT_TOKEN: |
+    LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFdmdJQkFEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0JLZ3dnZ1NrQWdFQUFvSUJBUURHWUF3bUVPbDJVcllRCmwxK1psaU5wSmdBL2liTFJyQkJpd1BnQXJqUUV5Nm91YUw4dWJqc1dmVWdHa29GZFVMeHpnT3BCaWhySGhRcWgKR2VqYXlseUltSSs4UkxsNVErZ0w2L2tmWUhjWWFQcmpwM1ROU2NTUUVNQlFQVGcyV3JvVEJ3V2JNcUZNT3MxTwo1OWdUY3JrTEd5bGN1ay83TEkvZHZpWFVtUGZiNTFUNDFMN1VIMU5nQlQ2eUVFV2F1L0tJbnBHdjUrc01sak1sCm51bEJHbk16QVd4RFRQK0dIMS94cnlMTlJOMUh5UXdTU01hTHpSSVBIMlQvY1daVW5oZVRxZlRCaDl6Rm1nUDIKZmRHUlppcTQ1dmYzbWRONnlFVHpXV1VzYkExWUVtbG9DWDZ1bUJubG00Y09RNkJMTGFlL0k5MnV2c0I2V3lVSQpKUE5LWHBGeEFnTUJBQUVDZ2dFQWVWK1d6MHVWckVHYkI3ZTJWR0JhTmlGOEVXUU10dURSL2JvWGcwTVNyTVIzCjBZRmhSK1ZGM2RLMVdPQVdxcU9WU2c1Y1JkRmI1U3R2ZjNZODFIRHdBTnRuUmtlK080WGkyamg4NmtlNVZvUVUKeldsTnU3VWd3UXlldmZsWEJWcXBjcTdmTFQvakZLTDlyd09IWHc3WVRRVkhYMmJYUE5UZENVMG9GRldyZ1MySwpueDVHam5IZnR4Z1hGR1lhTmkxT0ZPc2JvQmE4eUdTWk4yWHVpRlByNHFXbzRrRS94b3BMZFNReDJIRk9LOVNuCnYyc3VEN3JDVGdsWUN1ZGhnY0x3UlZUV2l0akhRNGVrSTdPWkdGdElET2loMjdYSVRhOGhhWExzVUYzT0JDMTUKdk1hNERONk8wRGZnSDJLZmwrbVZzQlNleHBXSTMvVGtDOW9NSGVicWFRS0JnUUR3enFFL1RvaEI0SkZQa3dCUwpabU9sMTkzMmd5QXhUc0Z4TTlRb1JaR0k1NW5aNTFIM3VjSXJqaGxGdFVkMVZESmx2a1lqZW9kWkhaZUhKSFcwClpRSmc0U2V2aHhUNktCaG53SlpBd1U4cHd5d2IyMGczdjgvdUcvcmVtcmF0UVJlNi9vUHMrWmozTmxpV2QzaHAKZStUY3JGTFo1U2hYRDdRTVQwcE9DaVBtQXdLQmdRRFM1QlVaRDZGRkFDendXMVg3aHlQdTlEQnJGOU1MdkNtTwpvSVpKMWdSMnhiZ1JsbHU2VG1tN0U3Z2tMNVJBYzF3WVZ1MnNqOFJNYXNXZG1nVUd3RkttbnFqQmtuU0JraS83ClhnTkV5Y2VhOHd0TVBra3VUa3lVaVRqNWNPcnN4bzFrOXdXUi9aVTRrL2hvR0o4US80UmNvNVlScFliV1lCVHIKbDdzL1dCWmFld0tCZ1FEZ1JORFFFT2U5MHRRQ2REbmNoQmRTSVZWTGZKdkMwRUpBbDdDRFFTZGxoYTAzejhQNwpIem5ETHJoQ3Y2NHBpNXpVUFAwOWxhUHdUeXNNWmR4cGdabFJlT0JwRFRsd01WOXBZV2VPTDNyMnZocWFad00vClNKanlmWVNMUlRQVTc4YVdGT3Z4REJSMlNGc0E1NHR4VWoyM2Q1WkI4TFk5UHhiRVVDUTN3aUhrMlFLQmdRQ3gKVXpzeVFXUTNJcmltdWdZSVkwK2hvdzM3WHFNRW9RaklkczJ6MUJNWTA1TzhwaE1uQ3J2NG85SVlDekc3SjhUdQphbG1hMmFBVEtVeFZBcWJyVUZldTVvVzdqaXdNcnlGTldYV2lKNUNCQjVBZVlka2k2SStYN2ZKTU85Z3RrNTVjCm9TQzc2dC9JSFJPb1k5dU1iVzJjZjZpMTJkc1E4dVZrVzhjRXNrckpkUUtCZ0F6ZFZNcXRPSWZEcjgvNzhEUXkKNFRsTmdCN2xCcklqaXBlY3VKZFo5QklMTzhFS3dEUHVPZnF1N29RK0I3Uis2b1JCMW9lMnJKMTZMR1oyNCtnWApBZGMrcTFuemF6Q0NMR3J5SUpMU1ZzNExMWFZJR2dieUxoMkdPT29jbUZSdVBIVGdLaDZCV2RuakZtRXlBUVNTClY1QUkzNk85NVFxbCtDNnUxR0c3RWY2NgotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
+---
+
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/name: gitops-agent
+    app.kubernetes.io/part-of: argocd
+  name: harness-gitops-agent
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gitops-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: agent
+        app.kubernetes.io/name: gitops-agent
+        app.kubernetes.io/part-of: argocd
+    spec:
+      serviceAccountName: harness-gitops-agent
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: gitops-agent
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/part-of: argocd
+                topologyKey: kubernetes.io/hostname
+              weight: 5
+      containers:
+        - command:
+            - /app/agent
+          name: gitops-agent
+          image: harness/gitops-agent:v0.64.0
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: harness-gitops-agent
+            - secretRef:
+                name: harness-gitops-agent
+          volumeMounts:
+            - mountPath: /app/config/ssh
+              name: ssh-known-hosts
+            - mountPath: /app/config/tls
+              name: tls-certs
+            - mountPath: /tmp/ca.bundle
+              name: certvol
+              subPath: ca.bundle
+            - mountPath: /tmp
+              name: tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: "1"
+            limits:
+              memory: 512Mi
+              cpu: "1"
+          startupProbe:
+            exec:
+              command:
+                - test
+                - -s
+                - logs/agent.log
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 32
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 8090
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 8090
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: argocd-ssh-known-hosts-cm
+          name: ssh-known-hosts
+        - configMap:
+            defaultMode: 420
+            name: argocd-tls-certs-cm
+          name: tls-certs
+        - emptyDir: { }
+          name: tmp
+        - name: certvol
+          secret:
+            secretName: harness-gitops-agent-ca
+            optional: true
+            items:
+              - key: ca.bundle
+                path: ca.bundle
+---
+
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: harness-gitops-agent-upgrader
+  namespace: default
+spec:
+  schedule: "0 */4 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 20
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: harness-gitops-agent-upgrader
+          containers:
+              - name: upgrader
+                image: harness/upgrader:latest
+                imagePullPolicy: Always
+                env:
+                  - name: POD_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+                volumeMounts:
+                  - name: config-volume
+                    mountPath: /etc/config
+                  - name: certvol
+                    mountPath: /tmp/ca.bundle
+                    subPath: ca.bundle
+          volumes:
+            - name: config-volume
+              configMap:
+                name: harness-gitops-agent-upgrader
+            - name: certvol
+              secret:
+                secretName: harness-gitops-agent-ca
+                optional: true
+                items:
+                - key: ca.bundle
+                  path: ca.bundle
+          restartPolicy: Never
+---
